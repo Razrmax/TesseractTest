@@ -3,25 +3,32 @@ using System.Drawing;
 using Tesseract;
 
 Console.WriteLine("Hello, World!");
-string content = "1 page\n";
+RotateClockwise();
+//RotateClockwise();
+string content = "1 page";
+string filePath = @"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg";
+
+Console.WriteLine("Text (GetText): \r\n{0}", GetText(filePath));
 RotateClockwise();
 
+var startAngle = CalcCurrentAngle(content, filePath);
+RestoreSourceAngle(startAngle);
+StraightenImage(content, filePath);
+Console.WriteLine("Text (GetText): \r\n{0}", GetText(filePath));
 
-
-Console.WriteLine("Text (GetText): \r\n{0}", GetText());
-
-
-static string GetText()
+/// <summary>
+/// Gets the text from the specified image file
+/// </summary>
+static string GetText(string filePath)
 {
     string text;
     using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
     {
-        using (var img = Pix.LoadFromFile(@"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg"))
+        using (var img = Pix.LoadFromFile(filePath))
         {
             using (var page = engine.Process(img))
             {
                 text = page.GetText();
-                
             }
         }
     }
@@ -29,42 +36,50 @@ static string GetText()
     return text;
 }
 
+/// <summary>
+/// Rotates the image file clockwise
+/// </summary>
 static void RotateClockwise()
 {
-    Bitmap bitmap;
-    bitmap = (Bitmap)Bitmap.FromFile(@"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg");
-    if (bitmap != null)
+    using (var bitmap = (Bitmap)Image.FromFile(@"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg"))
     {
-        bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
-        bitmap.Save(@"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg");
+        if (bitmap != null)
+        {
+            bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
+            bitmap.Save(@"C:\Users\Maxim_Soolkovskiy\Downloads\image.jpg");
+        } 
     }
 }
 
 /// <summary>
 /// Gets the current Angle of a text image
 /// </summary>
-static Angles CalcCurrentAngle(string content)
+static Angles CalcCurrentAngle(string content, string filePath)
 {
-    if (GetText().Contains(content)) { return Angles.Zero; }
+    if (GetText(filePath).Contains(content)) { return Angles.Zero; }
+    
+    var currentAngle = Angles.TwoSeventy;
 
-    var actualAngle = Angles.Zero;
-
-    while (!GetText().Contains(content))
+    for (Angles deltaAngle = Angles.Zero; deltaAngle <= Angles.TwoSeventy; deltaAngle++)
     {
-        Console.WriteLine(GetText());
-        actualAngle--;
+        if (GetText(filePath).Contains(content))
+        {
+            currentAngle -= deltaAngle;
+            break;
+        }
+
         RotateClockwise();
     }
 
-    return actualAngle;
+    return currentAngle;
 }
 
 /// <summary>
 /// Rotates the image till it is at 0 Angle
 /// </summary>
-static void StraightenImage(string content)
+static void StraightenImage(string content, string filePath)
 {
-    while(!GetText().Contains(content))
+    while(!GetText(filePath).Contains(content))
     {
         RotateClockwise();
     }
@@ -75,7 +90,7 @@ static void StraightenImage(string content)
 /// </summary>
 static void RestoreSourceAngle(Angles actualAngle)
 {
-    for (int i = 0; i < (int)actualAngle; i++)
+    for (Angles angle = Angles.Zero; angle < actualAngle; angle++)
     {
         RotateClockwise();
     }
@@ -83,9 +98,9 @@ static void RestoreSourceAngle(Angles actualAngle)
 
 enum Angles
 {
-    Ninety,
-    OneEighty,
-    TwoSeventy,
-    Zero
+    Zero = 0,
+    Ninety = 1,
+    OneEighty = 2,
+    TwoSeventy = 3
 }
 
